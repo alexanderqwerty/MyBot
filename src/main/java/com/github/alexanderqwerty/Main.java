@@ -1,4 +1,4 @@
-package org.example;
+package com.github.alexanderqwerty;
 
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
@@ -9,6 +9,7 @@ import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.messages.*;
 import com.vk.api.sdk.queries.messages.MessagesGetLongPollHistoryQuery;
 
+import javax.print.PrintException;
 import java.io.IOException;
 import java.util.*;
 
@@ -88,6 +89,7 @@ public class Main {
         Integer ts = vk.messages().getLongPollServer(actor).execute().getTs();
         List<List<KeyboardButton>> redStopButton = matrixToListOfLists(arrRedStopButton);
         List<List<KeyboardButton>> choseActionButtons = matrixToListOfLists(arrChoseActionButtons);
+        
         while (true) {
             MessagesGetLongPollHistoryQuery historyQuery = vk.messages().getLongPollHistory(actor).ts(ts);
             List<Message> messages = historyQuery.execute().getMessages().getItems();
@@ -98,12 +100,43 @@ public class Main {
                             sendUserMessageAndKeyboard(vk, message, actor,
                                     "Чтобы закончить напишите стоп",
                                     new Keyboard().setButtons(redStopButton));
+                            outLoop:
+                            while (true) {
+                                try {
+                                    Integer printTs = vk.messages().getLongPollServer(actor).execute().getTs();
+                                    MessagesGetLongPollHistoryQuery printQuery = vk.messages().getLongPollHistory(actor).ts(printTs);
+                                    List<Message> printMessages = printQuery.execute().getMessages().getItems();
+                                    if (!printMessages.isEmpty()) {
+                                        for (Message printMessage : printMessages) {
+                                            if (!printMessage.getAttachments().isEmpty()) {
+                                                Printer printer = new Printer();
+                                                printMessage.getAttachments().forEach(printer::print);
+                                            } else if (!printMessage.getReplyMessage().getAttachments().isEmpty()) {
+                                                Printer printer = new Printer();
+                                                printMessage.getReplyMessage().getAttachments().forEach(printer::print);
+                                            } else if (printMessage.getText().equalsIgnoreCase("stop")) {
+                                                break outLoop;
+                                            } else {
+                                                vk.messages().send(actor)
+                                                        .message("Я не понимаю что вы хотите от меня")
+                                                        .randomId(new Random().nextInt(1000))
+                                                        .userId(message.getFromId())
+                                                        .execute();
+                                            }
+
+                                        }
+                                    }
+
+                                } catch (ApiException | ClientException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
                         }
                         case "Save something" -> {
                             sendUserMessageAndKeyboard(vk, message, actor,
                                     "Чтобы закончить напишите стоп",
                                     new Keyboard().setButtons(redStopButton));
-                            outForLoop:
+                            outLoop:
                             while (true) {
                                 try {
                                     Integer downloadTs = vk.messages().getLongPollServer(actor).execute().getTs();
@@ -121,8 +154,8 @@ public class Main {
                                                         downloader(downloadAttachment, vk, actor, downloadMessage);
                                                     });
                                                 }
-                                            } else if (downloadMessage.getText().toLowerCase() == "stop") {
-                                                break outForLoop;
+                                            } else if (downloadMessage.getText().equalsIgnoreCase("stop")) {
+                                                break outLoop;
                                             } else {
                                                 vk.messages().send(actor)
                                                         .message("Я не понимаю что вы хотите от меня")

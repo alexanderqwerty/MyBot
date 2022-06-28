@@ -1,4 +1,4 @@
-package org.example;
+package com.github.alexanderqwerty;
 
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;

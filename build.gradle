@@ -2,7 +2,7 @@ plugins {
     id 'java'
 }
 compileJava {options.encoding = "UTF-8"}
-group 'org.example'
+group 'com.github.alexanderqwerty'
 version '1.0-SNAPSHOT'
 
 repositories {
